@@ -1,0 +1,243 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{pbox}
+
+% --- Custom Colors for Source Code Listing ---
+\definecolor{mGreen}{rgb}{0,0.6,0}
+\definecolor{mGray}{rgb}{0.5,0.5,0.5}
+\definecolor{mPurple}{rgb}{0.58,0,0.82}
+\definecolor{backgroundFix}{rgb}{0.96,0.96,0.96}
+
+\lstdefinestyle{CStyle}{
+    backgroundcolor=\color{backgroundFix},
+    commentstyle=\color{mGreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{mGray},
+    stringstyle=\color{mPurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C
+}
+
+\title{
+    \textbf{Laporan Tugas Besar 1 IF4021 Pemodelan dan Simulasi} \\
+    \vspace{0.2cm}
+    \large Pemodelan Simulasi Sistem Car Rental Bus Menggunakan SIMLIB dan C
+}
+
+\author{
+    \textbf{Brian A. Hadian} \\ 13523048 \\
+    \textit{Kelompok 8}
+    \makeatother
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\hrule
+\vspace{0.5cm}
+
+% ==============================================================================
+% DELIVERABLE 1: DESKRIPSI MASALAH (HALAMAN 1)
+% ==============================================================================
+\section*{1. Deskripsi dan Interpretasi Masalah}
+
+Sistem pengangkut penumpang pada area penyewaan mobil (\textit{car-rental system}) menghubungkan tiga lokasi utama: Terminal 1 (Lokasi 1), Terminal 2 (Lokasi 2), dan Car Rental (Lokasi 3). Lintasan berbentuk sirkuit tertutup sejauh 10 mil merupakan rute untuk 1 unit bus berkapasitas maksimal 20 orang dengan kecepatan konstan 30 mil/jam (0.5 mil/menit). Bus bergerak searah jarum jam balik (\textit{counterclockwise}) melintasi rute $3 \to 1 \to 2 \to 3$.
+
+\subsection*{Karakteristik Kedatangan dan Destinasi Penumpang}
+\begin{itemize}
+    \item Lokasi 1 (Terminal 1): Tingkat kedatangan penumpang berdistribusi eksponensial dengan laju $\lambda_1 = 14$ orang/jam. Seluruh penumpang bertujuan ke Car Rental (Lokasi 3).
+    \item Lokasi 2 (Terminal 2): Tingkat kedatangan penumpang berdistribusi eksponensial dengan laju $\lambda_2 = 10$ orang/jam. Seluruh penumpang bertujuan ke Car Rental (Lokasi 3).
+    \item Lokasi 3 (Car Rental): Tingkat kedatangan penumpang berdistribusi eksponensial dengan laju $\lambda_3 = 24$ orang/jam. Destinasi dipilih acak: Terminal 1 dengan peluang $0.583$ dan Terminal 2 dengan peluang $0.417$.
+\end{itemize}
+
+\subsection*{Aturan Operasional Bus dan Pelayanan}
+\begin{enumerate}
+    \item Penurunan (\textit{Unloading}): Penumpang diturunkan secara FIFO. Waktu penurunan per orang berdistribusi Uniform(16, 24) detik (Stream 4).
+    \item Penaikan (\textit{Loading}): Penumpang dinaikkan secara FIFO hingga kapasitas bus terpenuhi (maksimum 20 orang). Waktu naik per orang terdestribusi Uniform(15, 25) detik (Stream 5).
+    \item Aturan Waktu Dwell Minimum: Bus wajib berhenti minimal 5 menit (300 detik) di setiap lokasi. Jika dalam 5 menit tidak ada proses naik/turun yang berlangsung, bus akan berangkat.
+    \item Waktu Tempuh Perjalanan:
+    \begin{itemize}
+        \item Lokasi 3 ke Lokasi 1: $4.5\text{ mil} / 0.5\text{ mil/min} = 9.0\text{ menit} = 540\text{ detik}$.
+        \item Lokasi 1 ke Lokasi 2: $1.0\text{ mil} / 0.5\text{ mil/min} = 2.0\text{ menit} = 120\text{ detik}$.
+        \item Lokasi 2 ke Lokasi 3: $4.5\text{ mil} / 0.5\text{ mil/min} = 9.0\text{ menit} = 540\text{ detik}$.
+    \end{itemize}
+\end{enumerate}
+
+Simulasi dijalankan selama 80 jam ($288,000$ detik) untuk mengumpulkan statistik antrean, waktu tunda, okupansi bus, waktu henti bus, waktu \textit{loop}, dan total waktu penumpang dalam sistem.
+
+\newpage
+
+% ==============================================================================
+% PLACEHOLDERS GAMBAR (FIGURE PLACEHOLDERS)
+% ==============================================================================
+
+\section*{2. Diagram Sistem dan Tangkapan Layar Program}
+
+\begin{figure}[H]
+    \centering
+    % SPACE FOR IMAGE: Figure 2.72 System Diagram
+    \vspace{0.1cm}
+    \begin{center}
+        \includegraphics[width=0.55\textwidth]{fig2_72.png}
+    \end{center}
+    \vspace{0.1cm}
+    \caption{Diagram Arsitektur Sistem Car-Rental (Fig. 2.72)}
+    \label{fig:car_rental_diagram}
+\end{figure}
+
+\vspace{0.2cm}
+
+\begin{figure}[H]
+    \centering
+    % SPACE FOR IMAGE: Program Execution Screenshot
+    \vspace{0.1cm}
+    \begin{center}
+        \includegraphics[width=0.65\textwidth]{execution_snapshot1.png}
+    \end{center}
+    \vspace{0.1cm}
+    \caption{Tangkapan Layar Hasil Eksekusi Program Simulasi C (SIMLIB) 1}
+    \label{fig:execution_screenshot}
+\end{figure}
+
+\vspace{0.2cm}
+
+\begin{figure}[H]
+    \centering
+    % SPACE FOR IMAGE: Program Execution Screenshot
+    \vspace{0.1cm}
+    \begin{center}
+        \includegraphics[width=0.65\textwidth]{execution_snapshot2.png}
+    \end{center}
+    \vspace{0.1cm}
+    \caption{Tangkapan Layar Hasil Eksekusi Program Simulasi C (SIMLIB) 2}
+    \label{fig:execution_screenshot}
+\end{figure}
+
+\newpage
+
+% ==============================================================================
+% DELIVERABLE 2: SOURCE CODE (SIMLIB C)
+% ==============================================================================
+\section*{3. Kode Sumber Program (\texttt{car\_rental.c})}
+
+Berikut adalah kode sumber lengkap program simulasi sistem car-rental dalam bahasa C menggunakan pustaka SIMLIB.
+
+\lstinputlisting[style=CStyle, caption={Kode Sumber Lengkap Simulation Engine (\texttt{car\_rental.c})}]{car_rental.c}
+
+\newpage
+
+% ==============================================================================
+% DELIVERABLE 3: OUTPUT PROGRAM & HASIL STATISTIK
+% ==============================================================================
+\section*{4. Output Program dan Pembahasan Statistik}
+
+Hasil eksekusi simulasi selama 80 jam ($288,000$ detik) disajikan pada tabel-tabel statistik berikut:
+
+\subsection*{(a) Statistik Jumlah Penumpang dalam Antrean (\textit{Queue Length})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Lokasi / Stasiun} & \textbf{Rata-rata (Orang)} & \textbf{Maksimum (Orang)} & \textbf{Minimum (Orang)} \\
+\midrule
+Lokasi 1 (Terminal 1) & 7.4457 & 27.0 & 0.0 \\
+Lokasi 2 (Terminal 2) & 4.9424 & 17.0 & 0.0 \\
+Lokasi 3 (Car Rental) & 9.4496 & 30.0 & 0.0 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Jumlah Penumpang Antre di Setiap Lokasi}
+\end{table}
+
+\subsection*{(b) Statistik Waktu Tunda Antrean (\textit{Queue Delay})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Lokasi} & \textbf{Rata-rata (s)} & \textbf{Maksimum (s)} & \textbf{Minimum (s)} & \textbf{Jumlah Sampel} \\
+\midrule
+Lokasi 1 & 1904.89 (31m 45s) & 5534.83 (92m 15s) & 18.60 & 1120 \\
+Lokasi 2 & 1809.34 (30m 09s) & 7876.40 (131m 16s) & 15.31 & 784 \\
+Lokasi 3 & 1467.80 (24m 28s) & 4073.23 (67m 53s) & 22.71 & 1854 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Waktu Tunda Penumpang Menunggu Bus}
+\end{table}
+
+\subsection*{(c) Statistik Jumlah Penumpang di Dalam Bus (\textit{Bus Occupancy})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Parameter} & \textbf{Rata-rata (Orang)} & \textbf{Maksimum (Orang)} & \textbf{Kapasitas Maksimal} \\
+\midrule
+Okupansi Bus & 13.8530 & 20.0 & 20 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Penggunaan Kapasitas Tempat Duduk Bus}
+\end{table}
+
+\subsection*{(d) Statistik Waktu Henti Bus di Setiap Lokasi (\textit{Bus Dwell Time})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Lokasi} & \textbf{Rata-rata (s)} & \textbf{Maksimum (s)} & \textbf{Minimum (s)} & \textbf{Jumlah Berhenti} \\
+\midrule
+Lokasi 1 & 401.89 (6m 42s) & 610.24 (10m 10s) & 300.00 (5m 00s) & 110 \\
+Lokasi 2 & 328.39 (5m 28s) & 557.20 (9m 17s) & 300.00 (5m 00s) & 110 \\
+Lokasi 3 & 684.11 (11m 24s) & 824.59 (13m 45s) & 334.31 (5m 34s) & 110 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Durasi Bus Berhenti (\textit{Dwell Time}) Per Stasiun}
+\end{table}
+
+\subsection*{(e) Statistik Waktu Putaran Bus (\textit{Loop Time})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metrik} & \textbf{Rata-rata (s)} & \textbf{Maksimum (s)} & \textbf{Minimum (s)} & \textbf{Total Putaran} \\
+\midrule
+Waktu Loop ($3 \to 3$) & 2614.40 (43m 34s) & 2884.15 (48m 04s) & 2142.88 (35m 43s) & 110 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Waktu Tempuh Satu Putaran Lengkap Bus}
+\end{table}
+
+\subsection*{(f) Statistik Total Waktu Penumpang Dalam Sistem (\textit{Total Time in System})}
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Lokasi Asal} & \textbf{Rata-rata (s)} & \textbf{Maksimum (s)} & \textbf{Minimum (s)} & \textbf{Jumlah Penumpang} \\
+\midrule
+Lokasi 1 & 3115.64 (51m 56s) & 6737.62 (112m 18s) & 1064.31 (17m 44s) & 1120 \\
+Lokasi 2 & 2732.66 (45m 33s) & 8820.25 (147m 00s) & 835.71 (13m 56s) & 784 \\
+Lokasi 3 & 2503.43 (41m 43s) & 5297.35 (88m 17s) & 691.89 (11m 32s) & 1838 \\
+\bottomrule
+\end{tabular}
+\caption{Statistik Total Waktu Penumpang Sejak Datang Hingga Tiba di Tujuan}
+\end{table}
+
+\end{document}
